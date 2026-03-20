@@ -1805,157 +1805,42 @@ function gbPlay(i,e){
   const rom=gbRoms[i];
   if(!rom)return;
   if(!rom.data){
-    alert('⚠️ ROM non chargée en mémoire.\nVeuillez recharger le fichier .gb/.gbc/.gba depuis le bouton "Charger une ROM".\n\nLes données binaires ne persistent pas entre sessions — seule la liste est mémorisée.');
+    alert('⚠️ ROM non chargée en mémoire.\nVeuillez recharger le fichier depuis "Charger une ROM".');
     return;
   }
-  openGbPlayer(rom);
+  // Sauvegarde la ROM dans IndexedDB puis ouvre le player
+  gbSaveRomAndPlay(rom);
+}
+
+function gbSaveRomAndPlay(rom){
+  const req=indexedDB.open('gba_db',1);
+  req.onupgradeneeded=e=>e.target.result.createObjectStore('roms');
+  req.onsuccess=function(e){
+    const db=e.target.result;
+    const tx=db.transaction('roms','readwrite');
+    tx.objectStore('roms').put({data:rom.data,name:rom.name},'current');
+    tx.oncomplete=()=>{
+      window.open('./gba_player.html','_blank');
+    };
+  };
+  req.onerror=()=>alert('Erreur stockage ROM');
 }
 
 let gbCurrentRom=null;
+function openGbPlayer(rom){gbSaveRomAndPlay(rom);}
+function closeGbPlayer(){}
 
-function openGbPlayer(rom){
-  gbCurrentRom=rom;
-  document.body.style.overflow='hidden';
-
-  // Démarre le keep-alive IMMÉDIATEMENT — avant même le chargement de l'émulateur
-  gbStartKeepAlive();
-
-  let overlay=document.getElementById('gb-fullscreen-overlay');
-  if(overlay)overlay.remove();
-  overlay=document.createElement('div');
-  overlay.id='gb-fullscreen-overlay';
-  // position:fixed couvre tout l'écran proprement sur iPhone
-  overlay.style.cssText=[
-    'position:fixed',
-    'top:0','left:0','right:0','bottom:0',
-    'z-index:99999',
-    'background:#000',
-    'display:flex',
-    'flex-direction:column',
-    // safe area pour le notch iPhone
-    'padding-top:env(safe-area-inset-top,0px)',
-    'padding-bottom:env(safe-area-inset-bottom,0px)',
-  ].join(';');
-  document.body.appendChild(overlay);
-
-  // Barre du haut — hauteur fixe pour ne pas empiéter sur le jeu
-  const bar=document.createElement('div');
-  bar.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#0a0000;border-bottom:1px solid rgba(255,203,5,.15);flex-shrink:0;height:44px;box-sizing:border-box';
-  bar.innerHTML=`
-    <div style="font-family:Orbitron,monospace;font-size:11px;color:#FFCB05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
-      🎮 ${rom.name.replace(/\.[^.]+$/,'')}
-    </div>
-    <button onclick="closeGbPlayer()" style="background:rgba(204,0,0,.2);border:1px solid rgba(204,0,0,.4);color:#FF6666;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif;white-space:nowrap;margin-left:10px;flex-shrink:0">
-      ✕ Quitter
-    </button>`;
-  overlay.appendChild(bar);
-
-  // Zone de jeu — prend tout l'espace restant
-  const gameZone=document.createElement('div');
-  gameZone.style.cssText='flex:1;position:relative;width:100%;overflow:hidden;min-height:0';
-  overlay.appendChild(gameZone);
-
-  // Container EmulatorJS — couvre toute la zone jeu
-  const container=document.createElement('div');
-  container.id='ejs-container';
-  container.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%';
-  gameZone.appendChild(container);
-
-  // ROM → blob URL
-  const romBlob=new Blob([rom.data],{type:'application/octet-stream'});
-  const romUrl=URL.createObjectURL(romBlob);
-
-  // Nettoie l'ancien loader s'il existe
-  document.querySelectorAll('script[data-ejs]').forEach(s=>s.remove());
-
-  // Config EmulatorJS — strictement par défaut
-  window.EJS_player='#ejs-container';
-  window.EJS_core=gbCoreForExt(rom.ext);
-  window.EJS_gameUrl=romUrl;
-  window.EJS_pathtodata='https://cdn.emulatorjs.org/stable/data/';
-  window.EJS_startOnLoaded=true;
-  window.EJS_onGameStart=function(){
-    URL.revokeObjectURL(romUrl);
-  };
-
-  const script=document.createElement('script');
-  script.src='https://cdn.emulatorjs.org/stable/data/loader.js';
-  script.setAttribute('data-ejs','1');
-  document.body.appendChild(script);
-}
-
-function closeGbPlayer(){
-  gbStopKeepAlive();
-  document.body.style.overflow='';
-  // Stop GameBoy-Online si actif
-  try{if(window.gameboy){window.gameboy.stopEmulator=1; window.gameboy=null;}}catch(e){}
-  const overlay=document.getElementById('gb-fullscreen-overlay');
-  if(overlay)overlay.remove();
-  document.querySelectorAll('script[data-ejs],script[data-gbo]').forEach(s=>s.remove());
-  ['EJS_player','EJS_core','EJS_gameUrl','EJS_pathtodata','EJS_startOnLoaded',
-   'EJS_emulator','EJS_onGameStart'].forEach(k=>{try{delete window[k];}catch(e){}});
-  gbCurrentRom=null;
-}
 gbLoadMeta();
-
-// Service Worker — intercepte le 404 fr-FR.json d'EmulatorJS
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));
-}
 
 // Détecte si l'app est en mode PWA (standalone) ou dans Safari
 const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
 if(!isPWA){
-  // Affiche le banner d'installation
   const banner=document.getElementById('pwa-banner');
   if(banner) banner.style.display='block';
 }
 
-// ── SAFARI KEEP-ALIVE ──
-// Empêche Safari iOS de suspendre la page pendant le jeu
-let gbKeepAliveInterval=null;
-let gbWakeLock=null;
-
-async function gbStartKeepAlive(){
-  if(gbKeepAliveInterval) return; // déjà actif
-
-  // 1. Wake Lock
-  try{if(navigator.wakeLock){gbWakeLock=await navigator.wakeLock.request('screen');}}catch(e){}
-
-  // 2. Audio silencieux — LA méthode la plus fiable sur iOS
-  // Safari ne suspend JAMAIS une page avec un AudioContext actif
-  try{
-    const AudioCtx=window.AudioContext||window.webkitAudioContext;
-    if(AudioCtx&&!window._gbAudioCtx){
-      window._gbAudioCtx=new AudioCtx();
-      // Crée un buffer silencieux qui tourne en boucle
-      const bufferSize=window._gbAudioCtx.sampleRate*2; // 2 secondes
-      const buffer=window._gbAudioCtx.createBuffer(1,bufferSize,window._gbAudioCtx.sampleRate);
-      const source=window._gbAudioCtx.createBufferSource();
-      source.buffer=buffer;
-      source.loop=true;
-      const gain=window._gbAudioCtx.createGain();
-      gain.gain.value=0.00001;
-      source.connect(gain);
-      gain.connect(window._gbAudioCtx.destination);
-      source.start(0);
-      window._gbAudioSource=source;
-    }
-  }catch(e){}
-
-  // 3. Interval keepalive toutes les 10s
-  gbKeepAliveInterval=setInterval(()=>{
-    if(!gbCurrentRom){gbStopKeepAlive();return;}
-    // Ping le AudioContext pour le garder actif
-    try{if(window._gbAudioCtx&&window._gbAudioCtx.state==='suspended'){window._gbAudioCtx.resume();}}catch(e){}
-  },10000);
-}
-
-function gbStopKeepAlive(){
-  if(gbKeepAliveInterval){clearInterval(gbKeepAliveInterval);gbKeepAliveInterval=null;}
-  try{if(gbWakeLock){gbWakeLock.release();gbWakeLock=null;}}catch(e){}
-  try{if(window._gbAudioSource){window._gbAudioSource.stop();delete window._gbAudioSource;}}catch(e){}
-  try{if(window._gbAudioCtx){window._gbAudioCtx.close();delete window._gbAudioCtx;}}catch(e){}
+function gbStartKeepAlive(){}
+function gbStopKeepAlive(){}  try{if(window._gbAudioCtx){window._gbAudioCtx.close();delete window._gbAudioCtx;}}catch(e){}
 }
 
 // Relance si Safari remet la page en foreground
