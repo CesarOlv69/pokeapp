@@ -68,6 +68,9 @@ window.Worker=function(url,...a){
 
 let gba=null;
 
+// Attend un peu que IndexedDB soit prêt (pokeapp écrit en même temps)
+setTimeout(function(){
+
 // Charge la ROM depuis IndexedDB
 const req=indexedDB.open('gba_db',1);
 req.onupgradeneeded=e=>e.target.result.createObjectStore('roms');
@@ -123,6 +126,8 @@ Object.entries(keyMap).forEach(([id,kc])=>{
   el.addEventListener('mousedown',dn);
   el.addEventListener('mouseup',up);
 });
+
+}, 800); // fin setTimeout
 </script>
 </body>
 </html>

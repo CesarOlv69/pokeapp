@@ -1817,17 +1817,16 @@ function gbPlay(i,e){
 }
 
 function gbSaveRomAndPlay(rom){
+  // Ouvre le nouvel onglet IMMÉDIATEMENT (geste utilisateur direct)
+  const newTab=window.open('./gba_player.html','_blank');
+  // Puis stocke la ROM en IndexedDB
   const req=indexedDB.open('gba_db',1);
   req.onupgradeneeded=e=>e.target.result.createObjectStore('roms');
   req.onsuccess=function(e){
     const db=e.target.result;
     const tx=db.transaction('roms','readwrite');
     tx.objectStore('roms').put({data:rom.data,name:rom.name},'current');
-    tx.oncomplete=()=>{
-      window.open('./gba_player.html','_blank');
-    };
   };
-  req.onerror=()=>alert('Erreur stockage ROM');
 }
 
 let gbCurrentRom=null;
