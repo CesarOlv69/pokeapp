@@ -2,46 +2,67 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>GBA Player</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;display:flex;flex-direction:column;align-items:center;min-height:100vh;color:#fff;font-family:sans-serif;padding-top:env(safe-area-inset-top)}
-#screen{display:block;image-rendering:pixelated;width:100%;max-width:480px;background:#000;aspect-ratio:3/2}
-#status{padding:8px;font-size:12px;color:#aaa;text-align:center}
-.row{display:flex;gap:8px;padding:4px 8px;justify-content:center;align-items:center;width:100%}
-.btn{padding:14px 18px;background:#2a2a2a;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center}
-.btn:active{background:#444}
-.btn-a{background:#CC0000;width:52px;height:52px;border-radius:50%}
-.btn-b{background:#555;width:52px;height:52px;border-radius:50%}
-.btn-back{background:rgba(204,0,0,.2);border:1px solid rgba(204,0,0,.4);color:#FF6666;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;width:auto;height:auto}
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Exo+2:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+  :root{--y:#FFCB05;--r:#CC0000;--bg:#07080A;}
+  body{background:var(--bg);display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;color:#fff;font-family:'Exo 2',sans-serif;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+  #topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#0a0000;border-bottom:1px solid rgba(255,203,5,.15);flex-shrink:0;height:46px;}
+  #rom-title{font-family:Orbitron,monospace;font-size:11px;color:var(--y);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  #btn-back{background:rgba(204,0,0,.2);border:1px solid rgba(204,0,0,.4);color:#FF6666;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif;white-space:nowrap;margin-left:10px;flex-shrink:0;}
+  #screen-wrap{background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0;width:100%;border-bottom:2px solid rgba(255,203,5,.1);}
+  #screen{display:block;image-rendering:pixelated;width:100%;aspect-ratio:3/2;}
+  #status{font-size:10px;color:#555;text-align:center;padding:3px;flex-shrink:0;font-family:Orbitron,monospace;}
+  #controls{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:8px 20px;min-height:0;}
+  #row-lr{display:flex;justify-content:space-between;padding:0 2px;}
+  #row-main{display:flex;align-items:center;justify-content:space-between;}
+  #dpad{display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px 56px;gap:3px;}
+  #dpad .center{background:rgba(255,255,255,.04);border-radius:50%;}
+  #mid-btns{display:flex;flex-direction:column;gap:12px;align-items:center;}
+  #ab-btns{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .gbtn{background:#1e1e1e;border:1px solid rgba(255,255,255,.08);color:#ccc;border-radius:10px;cursor:pointer;touch-action:none;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;width:56px;height:56px;}
+  .gbtn:active,.gbtn.pressed{background:#3a3a3a;}
+  .gbtn-lr{width:68px;height:34px;border-radius:17px;background:#1a1a2e;border:1px solid rgba(255,203,5,.25);color:var(--y);font-size:13px;font-family:Orbitron,monospace;}
+  .gbtn-ss{width:76px;height:30px;border-radius:15px;background:#111;border:1px solid rgba(255,255,255,.1);color:#888;font-size:9px;font-family:Orbitron,monospace;letter-spacing:1px;}
+  #btn-a{width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FF3333,#880000);border:2px solid rgba(255,100,100,.3);color:#fff;font-size:22px;font-weight:900;font-family:Orbitron,monospace;box-shadow:0 4px 16px rgba(204,0,0,.5);}
+  #btn-b{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#555,#222);border:2px solid rgba(255,255,255,.1);color:#fff;font-size:18px;font-weight:900;font-family:Orbitron,monospace;}
 </style>
 </head>
 <body>
-<canvas id="screen" width="240" height="160"></canvas>
-<div id="status">⏳ Chargement...</div>
-
-<div class="row">
-  <button class="btn btn-back" onclick="history.back()">← Retour</button>
+<div id="topbar">
+  <div id="rom-title">🎮 Chargement...</div>
+  <button id="btn-back" onclick="history.back()">✕ Quitter</button>
+</div>
+<div id="screen-wrap">
+  <canvas id="screen" width="240" height="160"></canvas>
+</div>
+<div id="status">⏳ Initialisation...</div>
+<div id="controls">
+  <div id="row-lr">
+    <button class="gbtn gbtn-lr" id="btn-l">L</button>
+    <button class="gbtn gbtn-lr" id="btn-r">R</button>
+  </div>
+  <div id="row-main">
+    <div id="dpad">
+      <div></div><button class="gbtn" id="dpad-u">▲</button><div></div>
+      <button class="gbtn" id="dpad-l">◀</button><div class="center"></div><button class="gbtn" id="dpad-r">▶</button>
+      <div></div><button class="gbtn" id="dpad-d">▼</button><div></div>
+    </div>
+    <div id="mid-btns">
+      <button class="gbtn gbtn-ss" id="btn-select">SELECT</button>
+      <button class="gbtn gbtn-ss" id="btn-start">START</button>
+    </div>
+    <div id="ab-btns">
+      <button class="gbtn" id="btn-a">A</button>
+      <button class="gbtn" id="btn-b">B</button>
+    </div>
+  </div>
 </div>
 
-<div class="row">
-  <button class="btn" id="btn-l">L</button>
-  <button class="btn" id="dpad-u">▲</button>
-  <button class="btn" id="dpad-l">◀</button>
-  <button class="btn" id="dpad-d">▼</button>
-  <button class="btn" id="dpad-r">▶</button>
-  <button class="btn" id="btn-r">R</button>
-</div>
-<div class="row">
-  <button class="btn" id="btn-select" style="font-size:10px;width:auto;padding:8px 12px">SELECT</button>
-  <button class="btn" id="btn-start" style="font-size:10px;width:auto;padding:8px 12px">START</button>
-  <button class="btn btn-b" id="btn-b">B</button>
-  <button class="btn btn-a" id="btn-a">A</button>
-</div>
-
-<!-- gbajs2 -->
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/util.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/core.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/arm.js"></script>
@@ -57,77 +78,47 @@ body{background:#111;display:flex;flex-direction:column;align-items:center;min-h
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/savedata.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gpio.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gba.js"></script>
-
 <script>
-// Patch Worker path
 const _OW=window.Worker;
-window.Worker=function(url,...a){
-  if(url&&url.toString().includes('worker.js')) url='./js/video/worker.js';
-  return new _OW(url,...a);
-};
+window.Worker=function(url,...a){if(url&&url.toString().includes('worker.js'))url='./js/video/worker.js';return new _OW(url,...a);};
 
-let gba=null;
-
-// Attend un peu que IndexedDB soit prêt (pokeapp écrit en même temps)
 setTimeout(function(){
-
-// Charge la ROM depuis IndexedDB
-const req=indexedDB.open('gba_db',1);
-req.onupgradeneeded=e=>e.target.result.createObjectStore('roms');
-req.onsuccess=function(e){
-  const db=e.target.result;
-  const tx=db.transaction('roms','readonly');
-  const get=tx.objectStore('roms').get('current');
-  get.onsuccess=function(){
-    if(!get.result){document.getElementById('status').textContent='❌ Aucune ROM trouvée';return;}
-    const rom=get.result;
-    document.getElementById('status').textContent='⏳ '+rom.name+'...';
-    startGba(rom.data, rom.name);
+  const req=indexedDB.open('gba_db',1);
+  req.onupgradeneeded=e=>e.target.result.createObjectStore('roms');
+  req.onsuccess=function(e){
+    const get=e.target.result.transaction('roms','readonly').objectStore('roms').get('current');
+    get.onsuccess=function(){
+      if(!get.result){document.getElementById('status').textContent='❌ Aucune ROM';return;}
+      const rom=get.result;
+      document.getElementById('rom-title').textContent='🎮 '+rom.name.replace(/\.[^.]+$/,'');
+      document.getElementById('status').textContent='⏳ Chargement BIOS...';
+      fetch('./gba_bios.bin').then(r=>r.arrayBuffer()).then(b=>launch(rom.data,rom.name,b)).catch(()=>launch(rom.data,rom.name,null));
+    };
   };
-};
+  req.onerror=()=>{document.getElementById('status').textContent='❌ Erreur IndexedDB';};
+},800);
 
-function startGba(romData, romName){
-  // Charge le BIOS
-  fetch('./gba_bios.bin')
-    .then(r=>r.arrayBuffer())
-    .then(bios=>{launchGba(romData,romName,bios);})
-    .catch(()=>launchGba(romData,romName,null));
-}
-
-function launchGba(romData, romName, bios){
+function launch(romData,romName,bios){
   try{
-    gba=new GameBoyAdvance();
+    const gba=new GameBoyAdvance();
     gba.setCanvas(document.getElementById('screen'));
     gba.logLevel=gba.LOG_ERROR;
-    if(bios) gba.setBios(bios,false);
-    if(gba.setRom(romData)){
-      gba.runStable();
-      document.getElementById('status').textContent='🎮 '+romName;
-    } else {
-      document.getElementById('status').textContent='❌ ROM invalide';
-    }
-  }catch(err){
-    document.getElementById('status').textContent='❌ '+err.message;
-  }
+    if(bios)gba.setBios(bios,false);
+    if(gba.setRom(romData)){gba.runStable();document.getElementById('status').textContent='🟢 En jeu';}
+    else{document.getElementById('status').textContent='❌ ROM invalide';}
+  }catch(err){document.getElementById('status').textContent='❌ '+err.message;}
 }
 
-// Boutons
-const keyMap={
-  'btn-a':90,'btn-b':88,'btn-select':220,'btn-start':13,
-  'dpad-r':39,'dpad-l':37,'dpad-u':38,'dpad-d':40,'btn-r':83,'btn-l':65
-};
+const keyMap={'btn-a':90,'btn-b':88,'btn-select':220,'btn-start':13,'dpad-r':39,'dpad-l':37,'dpad-u':38,'dpad-d':40,'btn-r':83,'btn-l':65};
 Object.entries(keyMap).forEach(([id,kc])=>{
-  const el=document.getElementById(id);
-  if(!el)return;
-  const dn=e=>{e.preventDefault();document.dispatchEvent(new KeyboardEvent('keydown',{keyCode:kc,which:kc,bubbles:true}));};
-  const up=e=>{e.preventDefault();document.dispatchEvent(new KeyboardEvent('keyup',{keyCode:kc,which:kc,bubbles:true}));};
+  const el=document.getElementById(id);if(!el)return;
+  const dn=e=>{e.preventDefault();el.classList.add('pressed');document.dispatchEvent(new KeyboardEvent('keydown',{keyCode:kc,which:kc,bubbles:true}));};
+  const up=e=>{e.preventDefault();el.classList.remove('pressed');document.dispatchEvent(new KeyboardEvent('keyup',{keyCode:kc,which:kc,bubbles:true}));};
   el.addEventListener('touchstart',dn,{passive:false});
   el.addEventListener('touchend',up,{passive:false});
   el.addEventListener('mousedown',dn);
   el.addEventListener('mouseup',up);
 });
-
-}, 800); // fin setTimeout
 </script>
 </body>
 </html>
