@@ -1001,6 +1001,13 @@ function buildChartTopCartes() {
 }
 
 // ── SPLASH ──
+function hideSplash(){
+  const splash=document.getElementById('splash');
+  if(!splash||splash.classList.contains('hide'))return;
+  splash.classList.add('hide');
+  setTimeout(()=>{if(splash.parentNode)splash.remove();},700);
+  syncData();
+}
 window.addEventListener('load', () => {
   const fill = document.getElementById('sfill');
   let p = 0;
@@ -1008,13 +1015,10 @@ window.addEventListener('load', () => {
     p += Math.random() * 18;
     if (p >= 100) { p = 100; clearInterval(iv); }
     fill.style.width = p + '%';
-    if (p >= 100) setTimeout(() => {
-      document.getElementById('splash').classList.add('hide');
-      setTimeout(() => document.getElementById('splash').remove(), 700);
-      syncData();
-    }, 300);
+    if (p >= 100) setTimeout(hideSplash, 300);
   }, 90);
 });
+setTimeout(hideSplash, 4000);
 
 // ── SYNC ──
 async function syncData() {
@@ -1840,8 +1844,7 @@ if(!isPWA){
 }
 
 function gbStartKeepAlive(){}
-function gbStopKeepAlive(){}  try{if(window._gbAudioCtx){window._gbAudioCtx.close();delete window._gbAudioCtx;}}catch(e){}
-}
+function gbStopKeepAlive(){}
 
 // Relance si Safari remet la page en foreground
 document.addEventListener('visibilitychange',()=>{
