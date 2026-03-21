@@ -35,7 +35,6 @@
 <body>
 <div id="topbar">
   <div id="rom-title">🎮 Chargement...</div>
-  <button id="btn-sound" onclick="enableSound(this)" style="background:rgba(255,203,5,.15);border:1px solid rgba(255,203,5,.3);color:#FFCB05;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-left:6px;flex-shrink:0;">🔇 Son</button>
   <button id="btn-back" onclick="history.back()">✕ Quitter</button>
 </div>
 <div id="screen-wrap">
@@ -80,19 +79,6 @@
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gpio.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gba.js"></script>
 <script>
-function enableSound(btn){
-  try{
-    const AudioCtx=window.AudioContext||window.webkitAudioContext;
-    if(!AudioCtx)return;
-    const ctx=new AudioCtx();
-    ctx.resume().then(()=>{
-      window._gbaAudioCtx=ctx;
-      btn.textContent='🔊 Son';
-      btn.style.background='rgba(255,203,5,.3)';
-    });
-  }catch(e){}
-}
-
 const _OW=window.Worker;
 window.Worker=function(url,...a){if(url&&url.toString().includes('worker.js'))url='./js/video/worker.js';return new _OW(url,...a);};
 
@@ -126,7 +112,7 @@ function launch(romData,romName,bios){
 const keyMap={'btn-a':90,'btn-b':88,'btn-select':220,'btn-start':13,'dpad-r':39,'dpad-l':37,'dpad-u':38,'dpad-d':40,'btn-r':83,'btn-l':65};
 Object.entries(keyMap).forEach(([id,kc])=>{
   const el=document.getElementById(id);if(!el)return;
-  const dn=e=>{e.preventDefault();el.classList.add('pressed');if(navigator.vibrate)navigator.vibrate(25);document.dispatchEvent(new KeyboardEvent('keydown',{keyCode:kc,which:kc,bubbles:true}));};
+  const dn=e=>{e.preventDefault();el.classList.add('pressed');document.dispatchEvent(new KeyboardEvent('keydown',{keyCode:kc,which:kc,bubbles:true}));};
   const up=e=>{e.preventDefault();el.classList.remove('pressed');document.dispatchEvent(new KeyboardEvent('keyup',{keyCode:kc,which:kc,bubbles:true}));};
   el.addEventListener('touchstart',dn,{passive:false});
   el.addEventListener('touchend',up,{passive:false});
